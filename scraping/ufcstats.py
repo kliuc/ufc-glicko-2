@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 
-def get_completed_events(latest_n=None):
+def get_completed_fights(latest_n=None):
     response = requests.get('http://ufcstats.com/statistics/events/completed?page=all')
     soup = BeautifulSoup(response.text, 'html.parser')
     events_table = soup.find('table')
@@ -37,6 +37,6 @@ if __name__ == '__main__':
 
     import pandas as pd
     
-    fights = pd.DataFrame(get_completed_events(latest_n=5))
+    fights = pd.DataFrame(get_completed_fights(latest_n=5))
     print(fights.head())
     print(fights['event'].unique())

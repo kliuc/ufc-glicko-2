@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 def get_fighters(status='active'):
     if status == 'active':
         url = 'https://www.ufc.com/athletes/all?filters%5B0%5D=status%3A23&page='
-    if status == 'all':
+    elif status == 'all':
         url = 'https://www.ufc.com/athletes/all?page='
 
     all_fighters = []
