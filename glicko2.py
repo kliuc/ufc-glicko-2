@@ -9,20 +9,31 @@ class Player:
         self._rd = rd
         self._volatility = volatility
 
-    def update(self, oppositions, scores):
-        if len(oppositions) == 0:
-            self.did_not_compete()
-            return
-        
-        v = self._v(oppositions)
-        sum_gsE = self._sum_gsE(oppositions, scores)
-        delta = v * sum_gsE
-        self._update_volatility(delta, v)
-        mu = self._mu() + self._new_rd()**2 * sum_gsE
-        phi = 1 / np.sqrt(self._new_rd()**-2 + 1/v)
+    def p_a_beats_b(player_a, player_b):
+        rating_a, rating_b = player_a.rating, player_b.rating
+        phi_a, phi_b = player_a._phi(), player_b._phi()
+        g = 1 / np.sqrt(1 + 3*(phi_a**2 + phi_b**2) / np.pi**2)
+        return 1 / (1 + 10**(-g * (rating_a - rating_b) / 400))
+    
+    def p_win(self, opponent):
+        rating, phi = self.rating, self._phi()
+        rating_opp, phi_opp = opponent.rating, opponent._phi()
+        g = 1 / np.sqrt(1 + 3*(phi**2 + phi_opp**2) / np.pi**2)
+        return 1 / (1 + 10**(-g * (rating - rating_opp) / 400))
 
-        self.rating =  173.7178 * mu + 1500
-        self._rd =  173.7178 * phi
+    def update(self, opponents, scores):
+        if len(opponents) == 0:
+            self.did_not_compete()
+        else:
+            v = self._v(opponents)
+            sum_gsE = self._sum_gsE(opponents, scores)
+            delta = v * sum_gsE
+            self._update_volatility(delta, v)
+            mu = self._mu() + self._new_rd()**2 * sum_gsE
+            phi = 1 / np.sqrt(self._new_rd()**-2 + 1/v)
+
+            self.rating =  173.7178 * mu + 1500
+            self._rd =  173.7178 * phi
 
     def did_not_compete(self):
         phi = self._new_rd()
@@ -37,24 +48,24 @@ class Player:
     def _g(self):
         return 1 / np.sqrt(1 + 3*self._phi()**2 / np.pi**2)
     
-    def _E(self, opposition):
-        g_opp = opposition._g()
-        mu_opp = opposition._mu()
+    def _E(self, opponent):
+        g_opp = opponent._g()
+        mu_opp = opponent._mu()
         return 1 / (1 + np.exp(-g_opp * (self._mu() - mu_opp)))
     
-    def _v(self, oppositions):
+    def _v(self, opponents):
         sigma = 0
-        for opposition in oppositions:
-            g_opp = opposition._g()
-            E = self._E(opposition)
+        for opponent in opponents:
+            g_opp = opponent._g()
+            E = self._E(opponent)
             sigma += g_opp**2 * E * (1-E)
         return 1 / sigma
     
-    def _sum_gsE(self, oppositions, scores):
+    def _sum_gsE(self, opponents, scores):
         sigma = 0
-        for opposition, score in zip(oppositions, scores):
-            g_opp = opposition._g()
-            E = self._E(opposition)
+        for opponent, score in zip(opponents, scores):
+            g_opp = opponent._g()
+            E = self._E(opponent)
             sigma += g_opp * (score - E)
         return sigma
 
@@ -92,24 +103,26 @@ class Player:
 
 
 class Fighter(Player):
-    SCORING_DICT = {'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 0.95, 'M-DEC': 0.925, 'S-DEC': 0.9, 'DQ': 0.6},
-                   'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0.05, 'M-DEC': 0.075, 'S-DEC': 0.1, 'DQ': 0.4},
+    SCORING_DICT = {'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 1, 'M-DEC': 0.95, 'S-DEC': 0.9, 'DQ': 0.6},
+                   'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.05, 'S-DEC': 0.1, 'DQ': 0.4},
                    'draw': 0.5}
     
     def __init__(self, rating=1500, rd=350, volatility=0.06):
         super().__init__(rating, rd, volatility)
+        self.peak_rating = 0
         self.streak = 0
         self.best_streak = 0
-
-    def update(self, oppositions, outcomes, methods):
-        scores = self._get_scores(outcomes, methods)
-        super().update(oppositions, scores)
-        self._update_streak(outcomes)
-
-    def _get_scores(outcomes, methods):
-        return [Fighter.SCORING_DICT[outcome][result] if outcome != 'draw'
+    
+    def get_scores(outcomes, methods):
+        return [Fighter.SCORING_DICT[outcome][method] if outcome != 'draw'
                 else Fighter.SCORING_DICT['draw']
-                for outcome, result in zip(outcomes, methods)]
+                for outcome, method in zip(outcomes, methods)]
+
+    def update(self, opponents, outcomes, methods):
+        scores = Fighter.get_scores(outcomes, methods)
+        super().update(opponents, scores)
+        self.peak_rating = max(self.rating, self.peak_rating)
+        self._update_streak(outcomes)
     
     def _update_streak(self, outcomes):
         for outcome in outcomes:
@@ -122,14 +135,37 @@ class Fighter(Player):
                 continue
 
 
+class FighterManager(dict):
+    def __init__(self, names=[]):
+        super().__init__({name: Fighter() for name in names})
+
+    def add_fighters(self, names):
+        self.update({name: Fighter() for name in names if name not in self})
+
+    def update_fighters(self, fights_df):
+        competitors = fights_df['fighter'].unique()
+        self.add_fighters(competitors)
+        manager_copy = self.copy()
+        for name, fighter in self.items():
+            if name not in competitors:
+                fighter.did_not_compete()
+            else:
+                fights = fights_df[fights_df['fighter'] == name]
+                opponents = [manager_copy[opponent] for opponent in fights['opponent']]
+                outcomes = fights['outcome'].tolist()
+                methods = fights['method'].tolist()
+                fighter.update(opponents, outcomes, methods)
+
+
 if __name__ == '__main__':
-    players = [Player() for i in range(5)]
-    scores = [1, 0, 0.5, 1]
-    print([player.rating for player in players])
-    print([player._rd for player in players])
-    print([player._volatility for player in players])
-    players[0].update(players, scores)
-    players[1].update([], [])
-    print([player.rating for player in players])
-    print([player._rd for player in players])
-    print([player._volatility for player in players])
+    fighters = [Fighter() for i in range(7)]
+    print(fighters[0].rating, fighters[0]._rd, fighters[0]._volatility)
+
+    outcomes = ['win', 'win', 'draw', 'draw', 'loss', 'loss']
+    methods = ['SUB', 'U-DEC', '', '', 'S-DEC', 'DQ']
+    for opponent, outcome, method in zip(fighters[1:], outcomes, methods):
+        print(fighters[0].p_win(opponent))
+        fighters[0].update([opponent], [outcome], [method])
+        print(fighters[0].rating, fighters[0]._rd, fighters[0]._volatility)
+
+    print(Fighter.p_a_beats_b(fighters[0], fighters[1]))
