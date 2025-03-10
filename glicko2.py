@@ -70,6 +70,7 @@ class Player:
         return sigma
 
     def _update_volatility(self, delta, v):
+        print(Player.TAU)
         phi = self._phi()
         A = a = np.log(self._volatility**2)
 
@@ -103,6 +104,8 @@ class Player:
 
 
 class Fighter(Player):
+    TAU = 0.2
+
     SCORING_DICT = {'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 1, 'M-DEC': 0.95, 'S-DEC': 0.9, 'DQ': 0.6},
                    'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.05, 'S-DEC': 0.1, 'DQ': 0.4},
                    'draw': 0.5}
