@@ -1,13 +1,21 @@
 import numpy as np
+from scipy.stats import norm
 
 
 class Player:
-    TAU = 0.5
-
-    def __init__(self, rating=1500, rd=350, volatility=0.06):
+    def __init__(self, rating=1500, rd=350, volatility=0.06, tau=0.5):
         self.rating = rating
         self._rd = rd
         self._volatility = volatility
+        self._tau = tau
+
+    def get_rating(self):
+        return self.rating
+    
+    def get_rating_interval(self, confidence=0.95):
+        z = norm.ppf(1 - (1-confidence) / 2)
+        margin = z * self._rd
+        return (float(self.rating - margin), float(self.rating + margin))
 
     def p_a_beats_b(player_a, player_b):
         rating_a, rating_b = player_a.rating, player_b.rating
@@ -70,22 +78,21 @@ class Player:
         return sigma
 
     def _update_volatility(self, delta, v):
-        print(Player.TAU)
         phi = self._phi()
         A = a = np.log(self._volatility**2)
 
         def f(x):
             term_1 = np.exp(x) * (delta**2 - phi**2 - v - np.exp(x)) / 2 / (phi**2 + v + np.exp(x))**2
-            term_2 = (x-a) / Player.TAU**2
+            term_2 = (x-a) / self._tau**2
             return term_1 - term_2
 
         if delta**2 > phi**2 + v:
             B = np.log(delta**2 - phi**2 + v)
         else:
             k = 1
-            while f(a - k * Player.TAU) < 0:
+            while f(a - k * self._tau) < 0:
                 k += 1
-            B = a - k * Player.TAU
+            B = a - k * self._tau
         f_A, f_B = f(A), f(B)
 
         epsilon = 1e-6
@@ -104,14 +111,12 @@ class Player:
 
 
 class Fighter(Player):
-    TAU = 0.2
-
     SCORING_DICT = {'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 1, 'M-DEC': 0.95, 'S-DEC': 0.9, 'DQ': 0.6},
                    'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.05, 'S-DEC': 0.1, 'DQ': 0.4},
                    'draw': 0.5}
     
-    def __init__(self, rating=1500, rd=350, volatility=0.06):
-        super().__init__(rating, rd, volatility)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.peak_rating = 0
         self.streak = 0
         self.best_streak = 0
@@ -139,11 +144,13 @@ class Fighter(Player):
 
 
 class FighterManager(dict):
-    def __init__(self, names=[]):
-        super().__init__({name: Fighter() for name in names})
+    def __init__(self, names=[], volatility=0.06, tau=0.5):
+        self._volatility = volatility
+        self._tau = tau
+        super().__init__({name: Fighter(volatility=self._volatility, tau=self._tau) for name in names})
 
     def add_fighters(self, names):
-        self.update({name: Fighter() for name in names if name not in self})
+        self.update({name: Fighter(volatility=self._volatility, tau=self._tau) for name in names if name not in self})
 
     def update_fighters(self, fights_df):
         competitors = fights_df['fighter'].unique()
@@ -168,6 +175,7 @@ if __name__ == '__main__':
     methods = ['SUB', 'U-DEC', '', '', 'S-DEC', 'DQ']
     for opponent, outcome, method in zip(fighters[1:], outcomes, methods):
         print(fighters[0].p_win(opponent))
+        print(fighters[0].get_rating_interval())
         fighters[0].update([opponent], [outcome], [method])
         print(fighters[0].rating, fighters[0]._rd, fighters[0]._volatility)
 
