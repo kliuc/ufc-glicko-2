@@ -1,7 +1,9 @@
 from glicko2 import Player
+import pandas as pd
 
 
 class Fighter(Player):
+    # this is how scoring will be determined based on fight outcome and method
     SCORING_DICT = {'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 1, 'M-DEC': 0.85, 'S-DEC': 0.7, 'DQ': 0.55},
                    'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.15, 'S-DEC': 0.3, 'DQ': 0.45},
                    'draw': 0.5}
@@ -9,8 +11,7 @@ class Fighter(Player):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.peak_rating = 0
-        self.streak = 0
-        self.best_streak = 0
+        self.streak = self.best_streak = 0
         self.history = []
     
     def get_scores(outcomes, methods):
@@ -18,12 +19,12 @@ class Fighter(Player):
                 else Fighter.SCORING_DICT['draw']
                 for outcome, method in zip(outcomes, methods)]
 
-    def update_rating(self, opponents, outcomes, methods):
+    def update_rating(self, timestamp, opponents, outcomes, methods):
         scores = Fighter.get_scores(outcomes, methods)
         super().update_rating(opponents, scores)
         self.peak_rating = max(self.rating, self.peak_rating)
         self._update_streak(outcomes)
-        self._update_history()
+        self._update_history(timestamp)
     
     def _update_streak(self, outcomes):
         for outcome in outcomes:
@@ -35,9 +36,9 @@ class Fighter(Player):
             elif outcome == 'draw':
                 continue
 
-    def _update_history(self):
+    def _update_history(self, timestamp):
         lower, upper = self.get_rating_interval()
-        self.history.append({'rating': self.rating, 'lower': lower, 'upper': upper})
+        self.history.append({'timestamp': timestamp, 'rating': self.rating, 'lower': lower, 'upper': upper})
 
 
 class FighterManager(dict):
@@ -49,7 +50,13 @@ class FighterManager(dict):
     def add_fighters(self, names):
         self.update({name: Fighter(volatility=self._volatility, tau=self._tau) for name in names if name not in self})
 
-    def update_fighters(self, fights_df):
+    def update_fighters(self, timestamp, fights_df):
+        # mirror fights_df, flipping 'outcome' so there are two rows for each fight (one for each fighter)
+        copy_df = fights_df.copy()
+        copy_df[['fighter', 'opponent']] = copy_df[['opponent', 'fighter']]
+        copy_df['outcome'] = copy_df['outcome'].replace({'win': 'loss', 'loss': 'win'})
+        fights_df = pd.concat([fights_df, copy_df], ignore_index=True)
+
         competitors = fights_df['fighter'].unique()
         self.add_fighters(competitors)
         manager_copy = self.copy()
@@ -61,19 +68,4 @@ class FighterManager(dict):
                 opponents = [manager_copy[opponent] for opponent in fights['opponent']]
                 outcomes = fights['outcome'].tolist()
                 methods = fights['method'].tolist()
-                fighter.update_rating(opponents, outcomes, methods)
-
-
-if __name__ == '__main__':
-    fighters = [Fighter() for i in range(7)]
-    print(fighters[0].rating, fighters[0]._rd, fighters[0]._volatility)
-
-    outcomes = ['win', 'win', 'draw', 'draw', 'loss', 'loss']
-    methods = ['SUB', 'U-DEC', '', '', 'S-DEC', 'DQ']
-    for opponent, outcome, method in zip(fighters[1:], outcomes, methods):
-        print(fighters[0].p_win(opponent))
-        print(fighters[0].get_rating_interval())
-        fighters[0].update_rating([opponent], [outcome], [method])
-        print(fighters[0].rating, fighters[0]._rd, fighters[0]._volatility)
-
-    print(Fighter.p_a_beats_b(fighters[0], fighters[1]))
+                fighter.update_rating(timestamp, opponents, outcomes, methods)
