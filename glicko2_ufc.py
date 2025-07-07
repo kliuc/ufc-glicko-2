@@ -2,8 +2,8 @@ from glicko2 import Player
 
 
 class Fighter(Player):
-    SCORING_DICT = {'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 1, 'M-DEC': 0.95, 'S-DEC': 0.9, 'DQ': 0.6},
-                   'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.05, 'S-DEC': 0.1, 'DQ': 0.4},
+    SCORING_DICT = {'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 1, 'M-DEC': 0.85, 'S-DEC': 0.7, 'DQ': 0.55},
+                   'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.15, 'S-DEC': 0.3, 'DQ': 0.45},
                    'draw': 0.5}
     
     def __init__(self, *args, **kwargs):
@@ -11,17 +11,19 @@ class Fighter(Player):
         self.peak_rating = 0
         self.streak = 0
         self.best_streak = 0
+        self.history = []
     
     def get_scores(outcomes, methods):
         return [Fighter.SCORING_DICT[outcome][method] if outcome != 'draw'
                 else Fighter.SCORING_DICT['draw']
                 for outcome, method in zip(outcomes, methods)]
 
-    def update(self, opponents, outcomes, methods):
+    def update_rating(self, opponents, outcomes, methods):
         scores = Fighter.get_scores(outcomes, methods)
-        super().update(opponents, scores)
+        super().update_rating(opponents, scores)
         self.peak_rating = max(self.rating, self.peak_rating)
         self._update_streak(outcomes)
+        self._update_history()
     
     def _update_streak(self, outcomes):
         for outcome in outcomes:
@@ -32,6 +34,10 @@ class Fighter(Player):
                 self.streak = -1 if self.streak > 0 else self.streak - 1
             elif outcome == 'draw':
                 continue
+
+    def _update_history(self):
+        lower, upper = self.get_rating_interval()
+        self.history.append({'rating': self.rating, 'lower': lower, 'upper': upper})
 
 
 class FighterManager(dict):
@@ -55,7 +61,7 @@ class FighterManager(dict):
                 opponents = [manager_copy[opponent] for opponent in fights['opponent']]
                 outcomes = fights['outcome'].tolist()
                 methods = fights['method'].tolist()
-                fighter.update(opponents, outcomes, methods)
+                fighter.update_rating(opponents, outcomes, methods)
 
 
 if __name__ == '__main__':
@@ -67,7 +73,7 @@ if __name__ == '__main__':
     for opponent, outcome, method in zip(fighters[1:], outcomes, methods):
         print(fighters[0].p_win(opponent))
         print(fighters[0].get_rating_interval())
-        fighters[0].update([opponent], [outcome], [method])
+        fighters[0].update_rating([opponent], [outcome], [method])
         print(fighters[0].rating, fighters[0]._rd, fighters[0]._volatility)
 
     print(Fighter.p_a_beats_b(fighters[0], fighters[1]))

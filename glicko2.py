@@ -29,7 +29,7 @@ class Player:
         g = 1 / np.sqrt(1 + 3*(phi**2 + phi_opp**2) / np.pi**2)
         return 1 / (1 + 10**(-g * (rating - rating_opp) / 400))
 
-    def update(self, opponents, scores):
+    def update_rating(self, opponents, scores):
         if len(opponents) == 0:
             self.did_not_compete()
         else:
