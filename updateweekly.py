@@ -23,16 +23,13 @@ with open('data/fights.json', 'w') as f:
 fights_df = pd.read_json('data/fights.json').sort_values('date')
 fights_df = fights_df[fights_df['date'] >= datetime(2000, 11, 17)]
 fights_df = fights_df[fights_df['outcome'] != 'nc']
-copy_df = fights_df.copy()
-copy_df[['fighter', 'opponent']] = copy_df[['opponent', 'fighter']]
-copy_df['outcome'] = copy_df['outcome'].replace('win', 'loss')
-fights_df = pd.concat([fights_df, copy_df], ignore_index=True)
 weekly_grouped = fights_df.groupby(pd.Grouper(key='date', freq='W'))
 
 # calculate ratings
 manager = FighterManager()
 for week, group in weekly_grouped:
-    manager.update_fighters(group)
+    timestamp = week.strftime('%Y-%m-%d')
+    manager.update_fighters(timestamp, group)
 
 # update ratings.csv
 ratings_df = pd.DataFrame({'name': name,
