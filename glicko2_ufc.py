@@ -8,8 +8,9 @@ class Fighter(Player):
                    'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.15, 'S-DEC': 0.3, 'DQ': 0.45},
                    'draw': 0.5}
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, weight_class=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.weight_class = weight_class
         self.peak_rating = 0
         self.streak = self.best_streak = 0
         self.history = []
@@ -42,7 +43,7 @@ class Fighter(Player):
 
 
 class FighterManager(dict):
-    def __init__(self, names=[], volatility=0.06, tau=0.5):
+    def __init__(self, names=[], volatility=0.3001, tau=1.86):
         self._volatility = volatility
         self._tau = tau
         super().__init__({name: Fighter(volatility=self._volatility, tau=self._tau) for name in names})
@@ -52,20 +53,25 @@ class FighterManager(dict):
 
     def update_fighters(self, timestamp, fights_df):
         # mirror fights_df, flipping 'outcome' so there are two rows for each fight (one for each fighter)
-        copy_df = fights_df.copy()
-        copy_df[['fighter', 'opponent']] = copy_df[['opponent', 'fighter']]
-        copy_df['outcome'] = copy_df['outcome'].replace({'win': 'loss', 'loss': 'win'})
-        fights_df = pd.concat([fights_df, copy_df], ignore_index=True)
+        mirrored_df = fights_df.copy()
+        mirrored_df[['fighter', 'opponent']] = fights_df[['opponent', 'fighter']]
+        mirrored_df['outcome'] = mirrored_df['outcome'].replace({'win': 'loss', 'loss': 'win'})
+        fights_df = pd.concat([fights_df, mirrored_df], ignore_index=True)
 
-        competitors = fights_df['fighter'].unique()
-        self.add_fighters(competitors)
-        manager_copy = self.copy()
+        fights_grouped = fights_df.groupby('fighter')
+        fighter_names = fights_grouped.groups.keys()
+        self.add_fighters(fighter_names)
+        fighters_copy = {name: self[name] for name in fighter_names}
         for name, fighter in self.items():
-            if name not in competitors:
+            if name not in fighter_names:
                 fighter.did_not_compete()
             else:
-                fights = fights_df[fights_df['fighter'] == name]
-                opponents = [manager_copy[opponent] for opponent in fights['opponent']]
+                fights = fights_grouped.get_group(name)
+                opponents = [fighters_copy[opponent] for opponent in fights['opponent']]
                 outcomes = fights['outcome'].tolist()
                 methods = fights['method'].tolist()
                 fighter.update_rating(timestamp, opponents, outcomes, methods)
+                
+                weight_class = fights.iloc[-1]['weight_class']
+                if weight_class != 'Catch Weight' and fighter.weight_class != weight_class:
+                    fighter.weight_class = weight_class
