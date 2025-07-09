@@ -23,24 +23,26 @@ with open('data/fights.json', 'w') as f:
 fights_df = pd.read_json('data/fights.json').sort_values('date')
 fights_df = fights_df[fights_df['date'] >= datetime(2000, 11, 17)]
 fights_df = fights_df[fights_df['outcome'] != 'nc']
-weekly_grouped = fights_df.groupby(pd.Grouper(key='date', freq='W'))
+fights_grouped = fights_df.groupby(pd.Grouper(key='date', freq='10W'))
+
 
 # calculate ratings
 manager = FighterManager()
-for week, group in weekly_grouped:
-    timestamp = week.strftime('%Y-%m-%d')
+for period, group in fights_grouped:
+    timestamp = period.strftime('%Y-%m-%d')
     manager.update_fighters(timestamp, group)
 
 # update ratings.csv
 ratings_df = pd.DataFrame({'name': name,
+                           'weight_class': fighter.weight_class,
                            'current_rating': fighter.rating,
                            'peak_rating': fighter.peak_rating,
                            'current_streak': fighter.streak,
                            'best_streak': fighter.best_streak}
                            for name, fighter in manager.items())
-ratings_df.sort_values('name').to_csv('data/ratings.csv')
+ratings_df.to_csv('data/ratings.csv')
 
 # update ratings-history.json
-histories_dict = [{'name': name, 'history': fighter.history} for name, fighter in manager.items()]
+histories = [{'name': name, 'history': fighter.history} for name, fighter in manager.items()]
 with open('data/ratings-history.json', 'w') as f:
-    json.dump(histories_dict, f)
+    json.dump(histories, f)
