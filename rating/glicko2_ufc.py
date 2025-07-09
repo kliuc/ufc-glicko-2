@@ -1,4 +1,4 @@
-from glicko2 import Player
+from rating.glicko2 import Player
 import pandas as pd
 
 

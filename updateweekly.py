@@ -2,7 +2,7 @@ from scraping import ufcstats
 import json
 import pandas as pd
 from datetime import datetime
-from glicko2_ufc import Fighter, FighterManager
+from rating.glicko2_ufc import FighterManager
 
 
 # update fights.json
