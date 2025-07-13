@@ -33,4 +33,4 @@ jobs:
       uses: stefanzweifel/git-auto-commit-action@v6
       with:
         commit_message: Automated weekly update
-        file_pattern: 'data/fights.json data/ratings-history.json data/ratings.csv'
+        file_pattern: 'data/*'

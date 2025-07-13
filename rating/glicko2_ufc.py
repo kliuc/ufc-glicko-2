@@ -6,15 +6,20 @@ import pandas as pd
 class Fighter(Player):
 
     # this is how scoring will be determined based on fight outcome and method
-    SCORING_DICT = {'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 1, 'M-DEC': 0.85, 'S-DEC': 0.7, 'DQ': 0.55},
-                   'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.15, 'S-DEC': 0.3, 'DQ': 0.45},
-                   'draw': 0.5}
+    SCORING_DICT = {
+        'win': {'KO/TKO': 1, 'SUB': 1, 'U-DEC': 1, 'M-DEC': 0.85, 'S-DEC': 0.7, 'DQ': 0.55},
+        'loss': {'KO/TKO': 0, 'SUB': 0, 'U-DEC': 0, 'M-DEC': 0.15, 'S-DEC': 0.3, 'DQ': 0.45},
+        'draw': 0.5
+    }
     
     @staticmethod
     def get_scores(outcomes, methods):
-        return [Fighter.SCORING_DICT[outcome][method] if outcome != 'draw'
-                else Fighter.SCORING_DICT['draw']
-                for outcome, method in zip(outcomes, methods)]
+        return [
+            Fighter.SCORING_DICT[outcome][method]
+            if outcome != 'draw'
+            else Fighter.SCORING_DICT['draw']
+            for outcome, method in zip(outcomes, methods)
+        ]
     
 
     def __init__(self, weight_class=None, *args, **kwargs):
@@ -46,7 +51,9 @@ class Fighter(Player):
 
     def _update_history(self, timestamp):
         lower, upper = self.get_rating_interval()
-        self.history.append({'timestamp': timestamp, 'rating': self.rating, 'lower': lower, 'upper': upper})
+        self.history.append(
+            {'timestamp': timestamp, 'rating': self.rating, 'lower': lower, 'upper': upper}
+        )
 
 
 
@@ -94,5 +101,5 @@ class FighterManager(PlayerManager):
         return super().p_a_beats_b(id_a=name_a, id_b=name_b)
 
 
-    def get_matchup_matrix(self, names=None):
-        return super().get_matchup_matrix(ids=names)
+    def get_matchups_matrix(self, names=None):
+        return super().get_matchups_matrix(ids=names)

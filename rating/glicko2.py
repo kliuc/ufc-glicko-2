@@ -125,13 +125,17 @@ class PlayerManager(dict):
 
     def add_players(self, ids, players=None):
         if players is None:
-            super().update({id: Player(volatility=self._volatility, tau=self._tau)
-                            for id in ids if id not in self})
+            super().update(
+                {id: Player(volatility=self._volatility, tau=self._tau)
+                 for id in ids if id not in self}
+            )
         else:
             if len(ids) != len(players):
                 raise Exception('`ids` and `players` must be the same length.')
-            super().update({id: player 
-                            for id, player in zip(ids, players) if id not in self})
+            super().update(
+                {id: player
+                 for id, player in zip(ids, players) if id not in self}
+            )
 
 
     def update_players(self, player_ids, opponent_ids, scores):
@@ -143,9 +147,11 @@ class PlayerManager(dict):
             if id not in competitor_ids:
                 player.did_not_compete()
             else:
-                subset = [(opponent_id, score)
-                          for player_id, opponent_id, score in zip(player_ids, opponent_ids, scores)
-                          if player_id == id]
+                subset = [
+                    (opponent_id, score)
+                    for player_id, opponent_id, score in zip(player_ids, opponent_ids, scores)
+                    if player_id == id
+                ]
                 opponents_subset, scores_subset = list(zip(*subset))
                 player.update_rating(opponents_subset, scores_subset)
 
@@ -160,7 +166,7 @@ class PlayerManager(dict):
         return 1 / (1 + 10**(-g * (rating_a - rating_b) / 400))
 
 
-    def get_matchup_matrix(self, ids=None):
+    def get_matchups_matrix(self, ids=None):
         if ids is None:
             ids = self.keys()
 
@@ -168,9 +174,9 @@ class PlayerManager(dict):
         phis2 = np.array([self[id]._phi() for id in ids])**2
 
         g = 1 / np.sqrt(1 + 3*(phis2[:, None] + phis2) / np.pi**2)
-        matchup_matrix = 1 / (1 + 10**(-g * (ratings[:, None] - ratings) / 400))
+        matchups_matrix = 1 / (1 + 10**(-g * (ratings[:, None] - ratings) / 400))
 
-        return pd.DataFrame(matchup_matrix, index=ids, columns=ids)
+        return pd.DataFrame(matchups_matrix, index=ids, columns=ids)
 
 
 
@@ -181,4 +187,4 @@ if __name__ == '__main__':
     player_c = Player(rating=1300)
     player_d = Player(rating=2100)
     manager = PlayerManager(ids=['jon', 'dan', 'matt', 'tom'], players=[player_a, player_b, player_c, player_d])
-    print(manager.get_matchup_matrix().loc['tom'])
+    print(manager.get_matchups_matrix().loc['tom'])

@@ -16,11 +16,13 @@ def get_fighters(status='active'):
         if soup.find('div', class_='ufc-search-no-results'):
             break
         fighter_cards = soup.find_all('li', class_='l-flex__item')
-        fighters = [{'name': fighter.find('span', class_='c-listing-athlete__name').text.strip(),
-                     'weight_class': fighter.find('span', class_='c-listing-athlete__title').text.strip(),
-                     'record': fighter.find('span', class_='c-listing-athlete__record').text.strip()}
-                     for fighter in fighter_cards
-                     if fighter.find('span', class_='c-listing-athlete__name')]
+        fighters = [
+            {'name': fighter.find('span', class_='c-listing-athlete__name').text.strip(),
+             'weight_class': fighter.find('span', class_='c-listing-athlete__title').text.strip(),
+             'record': fighter.find('span', class_='c-listing-athlete__record').text.strip()}
+            for fighter in fighter_cards
+            if fighter.find('span', class_='c-listing-athlete__name')
+        ]
         all_fighters.extend(fighters)
         page_num += 1
 
