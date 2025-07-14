@@ -6,7 +6,7 @@ import pandas as pd
 def load_ratings():
     return pd.read_csv('data/ratings.csv')
 
-st.set_page_config(page_title='Home')
+st.set_page_config(page_title='Home', initial_sidebar_state='auto')
 
 st.write('# UFC Glicko-2 Based Rating System')
 st.write('Check out additional tables and plots using the sidebar!')
