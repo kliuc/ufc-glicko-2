@@ -13,3 +13,23 @@ Glicko-2 is a rating algorithm developed by [Dr. Mark Glickman](https://www.glic
 The benefit of using Glicko-2 over traditional rating systems (like Elo) is that Glicko-2 accounts for uncertainty in ratings. Specifically, Glicko-2 takes a Bayesian approach by modeling player skill as a probability distribution (instead of a single value). This is a critical feature that makes Glicko-2 a great choice for computing ratings in the UFC, where upsets and evolving skill sets make it difficult to assign static ratings.
 
 ## Usage
+
+I have made my implementations of Glicko-2 and UFC-specific Glicko-2 available in the repo as Python modules. The UFC fighter ratings dataset is also available and is automatically updated weekly (after UFC events) via GitHub Actions. There is also a web app to explore the ratings! If interested, the Glicko-2 algorithm optimization procedures are also available as Jupyter notebook.
+
+### [Web App](https://ufc-glicko-2.streamlit.app/)
+Explore the data!
+
+### [Glicko-2 Implementation](https://github.com/kliuc/ufc-glicko-2/tree/main/rating)
+Make your own Glicko-2 rating system!
+
+### [Ratings Dataset](https://github.com/kliuc/ufc-glicko-2/blob/main/data/ratings.csv)
+Download the data and create models!
+
+### [Optimization](https://github.com/kliuc/ufc-glicko-2/blob/main/optimization.ipynb)
+See the optimization procedures!
+
+
+
+
+
+
