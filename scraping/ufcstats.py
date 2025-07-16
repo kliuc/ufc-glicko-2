@@ -1,16 +1,20 @@
+"""Functions for scraping ufcstats.com."""
+
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
 
-
 def get_upcoming_fights():
+    """Get all upcoming fights.
+    
+    Returns:
+        list[dict] -- list of fight entries
+    """
     response = requests.get('http://ufcstats.com/statistics/events/upcoming')
-
     soup = BeautifulSoup(response.text, 'html.parser')
     events_table = soup.find('table')
     events = events_table.find_all('i')
-
     all_fights = []
     for event in events:
         date_text = event.find('span').text.strip()
@@ -31,19 +35,23 @@ def get_upcoming_fights():
             for columns in [fight.find_all('td')]
         ]
         all_fights.extend(fights)
-
     return all_fights
 
 
 def get_completed_fights(latest_n_events=None):
+    """Get completed fights.
+    
+    Args:
+        latest_n_events (int) -- number of recent UFC events to get fights from (default None)
+    Returns:
+        list[dict] -- list of fight entries
+        if latest_n_events is None then all completed UFC events are included
+    """
     n = latest_n_events+1 if latest_n_events else None
-
     response = requests.get('http://ufcstats.com/statistics/events/completed?page=all')
-
     soup = BeautifulSoup(response.text, 'html.parser')
     events_table = soup.find('table')
     events = events_table.find_all('i')
-
     all_fights = []
     for event in events[1:n]:
         date_text = event.find('span').text.strip()
@@ -66,13 +74,10 @@ def get_completed_fights(latest_n_events=None):
             for columns in [fight.find_all('td')]
         ]
         all_fights.extend(fights)
-
     return all_fights
 
 
-
 if __name__ == '__main__':
-
     import pandas as pd
     
     fights = pd.DataFrame(get_upcoming_fights())
