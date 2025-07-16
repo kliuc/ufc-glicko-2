@@ -109,7 +109,7 @@ class FighterManager(PlayerManager):
         get_matchups_matrix -- wrapper for `PlayerManager.get_matchups_matrix`
     """
 
-    def __init__(self, names=None, fighters=None, volatility=0.3001, tau=1.86):
+    def __init__(self, names=None, fighters=None, volatility=0.2956, tau=1.311):
         """Initialize the manager.
         
         Args:
