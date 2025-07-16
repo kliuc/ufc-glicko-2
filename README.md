@@ -28,7 +28,11 @@ Download the data and create models!
 ### [Optimization](https://github.com/kliuc/ufc-glicko-2/blob/main/optimization.ipynb)
 See the optimization procedures!
 
+## References
 
+Glickman, Mark E., et al. “A Comparison of Rating Systems for Competitive Womens’s Beach Volleyball.” *Statistica Applicata*, vol. 30, no. 2, Aug. 2018, pp. 233–54. *DOI.org (CSL JSON)*, https://doi.org/10.26398/IJAS.0030-010.
+
+Glickman, Mark E. *Example of the Glicko-2 System*. Mar. 2022, https://www.glicko.net/glicko/glicko2.pdf.
 
 
 
