@@ -1,3 +1,5 @@
+"""Weekly update script to fetch new data and update ratings."""
+
 from scraping import ufcstats
 import json
 import pandas as pd
