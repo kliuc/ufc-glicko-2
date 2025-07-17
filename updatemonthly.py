@@ -1,3 +1,5 @@
+"""Monthly update script to fetch new fights data."""
+
 from scraping import ufcstats
 import json
 
