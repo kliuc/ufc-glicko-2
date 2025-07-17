@@ -1,8 +1,17 @@
+"""Functions for scraping ufc.com"""
+
 import requests
 from bs4 import BeautifulSoup
 
 
 def get_fighters(status='active'):
+    """Get fighter profiles.
+    
+    Args:
+        status (str) -- fighter status to get data for ('active' for active fighers, 'all' for all fighters)
+    Returns:
+        list[dict] -- list of fighter profiles
+    """
     if status == 'active':
         url = 'https://www.ufc.com/athletes/all?filters%5B0%5D=status%3A23&page='
     elif status == 'all':
@@ -28,10 +37,19 @@ def get_fighters(status='active'):
 
     return all_fighters
 
+
 def get_ranking(weight_class):
+    """Get the UFC's fighter rankings for specified weight class.
+
+    Args:
+        weight_class (str) -- weight class to get the rankings for
+    Returns:
+        list[str] -- list of fighter names in order from highest to lowest rank
+    """
     response = requests.get('https://www.ufc.com/rankings')
     soup = BeautifulSoup(response.text, 'html.parser')
     rankings = soup.find_all('div', class_='view-grouping')
     ranking = next(div for div in rankings
                    if weight_class.lower() == div.find('h4').text.replace('Top Rank', '').strip().lower())
     return [row.find_all('td')[1].text.strip() for row in ranking.find_all('tr')]
+    
